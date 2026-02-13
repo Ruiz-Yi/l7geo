@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { L7Editor } from '@antv/l7-editor';
 import { GeoJsonEditor } from '@antv/l7-editor/es/components';
+import { ungzip } from 'pako';
 
 function hasWebGL() {
   const canvas = document.createElement('canvas');
@@ -18,13 +19,45 @@ function toFeatures(data) {
 
 async function loadGeoJsonFromParam(param) {
   const decoded = decodeURIComponent(param);
-  let text = decoded;
+
+  const parseText = (text) => toFeatures(JSON.parse(text));
+
+  const parseBase64Gzip = (maybeBase64) => {
+    try {
+      const binary = atob(maybeBase64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i += 1) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      const inflated = ungzip(bytes, { to: 'string' });
+      return parseText(inflated);
+    } catch (err) {
+      throw new Error('GeoJSON 参数既不是有效的 JSON，也不是 base64+gzip 文本');
+    }
+  };
+
+  const tryParseLocal = () => {
+    try {
+      return parseText(decoded);
+    } catch (_) {
+      return parseBase64Gzip(decoded);
+    }
+  };
+
   if (/^https?:\/\//i.test(decoded)) {
     const res = await fetch(decoded);
-    text = await res.text();
+    // Prefer binary in case the response is gzipped.
+    const buffer = await res.arrayBuffer();
+    try {
+      const inflated = ungzip(new Uint8Array(buffer), { to: 'string' });
+      return parseText(inflated);
+    } catch (_) {
+      const text = new TextDecoder().decode(buffer);
+      return parseText(text);
+    }
   }
-  const parsed = JSON.parse(text);
-  return toFeatures(parsed);
+
+  return tryParseLocal();
 }
 
 export default function App() {
@@ -103,6 +136,8 @@ export default function App() {
         coordConvert="WGS84"
         mapControl={{ saveMapOptionsControl: false }}
         toolbar={{logo: false, baseMap : false, import: false, download : false, guide: false, help: false, setting: false, theme: false, dingTalk: false, i18n: false}}
+        showTextLayer = "true"
+        textLayerFields = {[ 'desc']}
       />
     </div>
   );

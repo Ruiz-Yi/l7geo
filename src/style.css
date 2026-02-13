@@ -19,6 +19,20 @@ html, body, #app {
   width: 100%;
   min-height: 0;
 }
+/* Hide the built-in header bar (empty space) */
+.l7-editor-header {
+  display: none !important;
+  height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+.l7-editor-content {
+    height: 100% !important;
+}
+
+.l7-bottom.l7-column.l7-left {
+    display: none !important;
+}
 /* Removed global toolbar hiding to avoid impacting layout; toolbar is already disabled via props */
 .fallback {
   max-width: 480px;
