@@ -31,7 +31,7 @@ html, body, #app {
 }
 
 .l7-bottom.l7-column.l7-left {
-    display: none !important;
+
 }
 /* Removed global toolbar hiding to avoid impacting layout; toolbar is already disabled via props */
 .fallback {
